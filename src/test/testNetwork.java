@@ -34,12 +34,12 @@ public class testNetwork {
     }
 
     public static void main(String[] args) throws Throwable {
-//        simple_run();
+        simple_run();
 //        change_nd();
 //        change_nn();
 //        various_accuracy_R_K_methods();
 //        measure_sd_dt_R_K();
-        measure_timelineSpeed();
+//        measure_timelineSpeed();
     }
 
     public static void simple_run() throws Throwable {

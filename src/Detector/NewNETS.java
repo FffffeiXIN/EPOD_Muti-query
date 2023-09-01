@@ -37,9 +37,20 @@ public class NewNETS extends Detector {
 
     //=========================for measurement=========================
     public int processExternalPoints = 0;
+    //=========================mutiQuery=========================
+    public int K;
+    public double R;
+    public double min_R;
+    //Todo#：记得重置代码中的R和K
+    //Todo#: 传回信息多一个数量，嘚在getExternalData里面接收一下，后面找个位置更新
 
     public NewNETS(int random) {
         super();
+
+        K = Constants.K;
+        R = Constants.R;
+        min_R = Constants.R;
+
         this.subDimFlag = Constants.dim != Constants.subDim;
         this.random = random;
         determineMinMax();
@@ -106,7 +117,81 @@ public class NewNETS extends Detector {
                 subDimSize[i] = subDimGapCount[i] * subDimLength[i];
             }
         }
+    }
 
+    public NewNETS(int random, int K, double min_R, double R) {
+        super();
+
+        this.K = K;
+        this.R = R;
+        this.min_R = min_R;
+
+        this.subDimFlag = Constants.dim != Constants.subDim;
+        this.random = random;
+        determineMinMax();
+        this.windowCnt = new HashMap<>();
+        this.slides = new LinkedList<>();
+        this.slideOut = new HashMap<>();
+        this.idxDecoder = new HashMap<>();
+        this.idxEncoder = new HashMap<>();
+        this.fullDimCellWindowCnt = new HashMap<>();
+        this.fullDimCellSlidesCnt = new LinkedList<>();
+        this.fullDimCellSlideOutCnt = new HashMap<>();
+        this.outliers = new HashSet<>();
+        this.neighCellIdxDist = Math.sqrt(Constants.subDim) * 2;
+        this.neighCellFullDimIdxDist = Math.sqrt(Constants.dim) * 2;
+        this.internal_dataList = new HashMap<>();
+
+        //TODO: all dimension weigh equal
+        /* Cell size calculation for all dim*/
+        double minDimSize = Integer.MAX_VALUE;
+        double[] dimSize = new double[Constants.dim];
+        for (int i = 0; i < Constants.dim; i++) {
+            dimSize[i] = maxValues[i] - minValues[i];
+            if (dimSize[i] < minDimSize) minDimSize = dimSize[i];
+        }
+
+        double dimWeightsSum = 0;
+        int[] dimWeights = new int[Constants.dim];
+        for (int i = 0; i < Constants.dim; i++) {
+            //dimWeights[i] = dimSize[i]/minDimSize; //relative-weight
+            dimWeights[i] = 1; //equal-weight
+            dimWeightsSum += dimWeights[i];
+        }
+
+        dimLength = new double[Constants.dim];
+        double[] gapCount = new double[Constants.dim];
+        for (int i = 0; i < Constants.dim; i++) {
+            dimLength[i] = Math.sqrt(Constants.R * Constants.R * dimWeights[i] / dimWeightsSum);
+            gapCount[i] = Math.ceil(dimSize[i] / dimLength[i]);
+            dimSize[i] = gapCount[i] * dimLength[i];
+        }
+
+        /* Cell size calculation for sub dim*/
+        if (subDimFlag) {
+            double minSubDimSize = Integer.MAX_VALUE;
+            double[] subDimSize = new double[Constants.subDim];
+            for (int i = 0; i < Constants.subDim; i++) {
+                subDimSize[i] = maxValues[i] - minValues[i];
+                if (subDimSize[i] < minSubDimSize) minSubDimSize = subDimSize[i];
+            }
+
+            double subDimWeightsSum = 0;
+            int[] subDimWeights = new int[Constants.subDim];
+            for (int i = 0; i < Constants.subDim; i++) {
+                //subDimWeights[i] = subDimSize[i]/minSubDimSize; //relative-weight
+                subDimWeights[i] = 1; //equal-weight
+                subDimWeightsSum += subDimWeights[i];
+            }
+
+            subDimLength = new double[Constants.subDim];
+            double[] subDimGapCount = new double[Constants.subDim];
+            for (int i = 0; i < Constants.subDim; i++) {
+                subDimLength[i] = Math.sqrt(Constants.R * Constants.R * subDimWeights[i] / subDimWeightsSum);
+                subDimGapCount[i] = Math.ceil(subDimSize[i] / subDimLength[i]);
+                subDimSize[i] = subDimGapCount[i] * subDimLength[i];
+            }
+        }
     }
 
     @Override

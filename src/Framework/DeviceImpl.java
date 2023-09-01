@@ -6,6 +6,7 @@ import Detector.NewNETS;
 import RPC.DeviceService;
 import RPC.EdgeNodeService;
 import RPC.Vector;
+import org.apache.thrift.TException;
 import test.testNetwork;
 import utils.Constants;
 import utils.DataGenerator;
@@ -34,6 +35,7 @@ public class DeviceImpl implements DeviceService.Iface {
     public List<Vector> allData;
 
     //========================for multiple query========================
+    Random random = new Random();
     public double myR;
     public int myK;
     public double minR;
@@ -46,18 +48,31 @@ public class DeviceImpl implements DeviceService.Iface {
         this.deviceId = deviceId;
         this.dataGenerator = new DataGenerator(deviceId);
         this.allData = Collections.synchronizedList(new ArrayList<>());
-        if (Constants.methodToGenerateFingerprint.contains("NETS")) {
-            this.detector = new NewNETS(0);
-        } else if (Constants.methodToGenerateFingerprint.contains("MCOD")) {
-            this.detector = new MCOD();
-        }
 
         //========================for multiple query========================
-        myR = Constants.R;
-        myK = Constants.K;
-//        myR = Constants.Rs[deviceId];
-//        myK = Constants.Ks[deviceId];
-        //记得重置代码中的R和K
+        if (Constants.isVariousR)
+            this.myR = Constants.R + random.nextDouble() * Constants.R * 0.3 * Math.pow(-1, deviceId);
+        else this.myR = Constants.R;
+
+        if (Constants.isVariousK)
+            this.myK = Constants.K + random.nextInt((int) (Constants.K * 0.3)) * (int) Math.pow(-1, deviceId);
+        else this.myK = Constants.K;
+        minR = Constants.R;
+
+//        if (Constants.methodToGenerateFingerprint.contains("NETS")) {
+//            this.detector = new NewNETS(0);
+//        } else if (Constants.methodToGenerateFingerprint.contains("MCOD")) {
+//            this.detector = new MCOD();
+//        }
+        System.out.println("device "+ deviceId + " myR is " + myR + " myK is " + myK);
+    }
+
+    public void setDetectMethod(){
+        if (Constants.methodToGenerateFingerprint.contains("NETS")) {
+            this.detector = new NewNETS(0, this.myK, this.minR, this.myR);
+        } else if (Constants.methodToGenerateFingerprint.contains("MCOD")) {
+            this.detector = new MCOD(this.myK, this.minR, this.myR);
+        }
     }
 
     public void setClients(EdgeNodeService.Client clientsForNearestNode, Map<Integer, DeviceService.Client> clientsForDevices) {
@@ -219,8 +234,11 @@ public class DeviceImpl implements DeviceService.Iface {
     }
 
     //==============for multi-query================
-    public double uploadRK(){
+    public void uploadR_K() throws TException {
         // 调用node端的synchronizeRK()
-        return -1.0;
+        this.minR = this.clientsForNearestNode.synchronizeR_K(this.myK, this.myR);
+//        setDetectMethod();
+        EdgeNodeNetwork.receive_minR_device.getAndIncrement();
+        System.out.println("device "+ deviceId + " myR is " + myR + " myK is " + myK + " minR is " + minR);
     }
 }

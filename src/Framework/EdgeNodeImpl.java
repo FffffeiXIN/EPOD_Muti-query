@@ -28,10 +28,11 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
     public List<Vector> rawData;
 
     //========================for multiple query========================
-    public int minK = Integer.MAX_VALUE;
-    public int maxK = Integer.MIN_VALUE;
-    public double minR = Double.MAX_VALUE;
-    public double maxR = Double.MIN_VALUE;
+    public int minK;
+    public int maxK ;
+    public double minR;
+    public double maxR;
+    public AtomicInteger count_RK = new AtomicInteger(0);
 
     public EdgeNodeImpl(EdgeNode edgeNode) {
         this.belongedNode = edgeNode;
@@ -46,10 +47,27 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
             this.handler = new MCODHandler(this);
         }
 
+        if (Constants.isVariousR){
+            minR = Double.MAX_VALUE;
+            maxR = Double.MIN_VALUE;
+        }
+        else {
+            minR = Constants.R;
+            maxR = Constants.R;
+        }
+        if (Constants.isVariousK){
+            minK = Integer.MAX_VALUE;
+            maxK = Integer.MIN_VALUE;
+        }
+        else {
+            minK = Constants.K;
+            maxK = Constants.K;
+        }
+
         // for baseline
-        if (Objects.equals(Constants.methodToGenerateFingerprint, "NETS_CENTRALIZE")){
+        if (Objects.equals(Constants.methodToGenerateFingerprint, "NETS_CENTRALIZE")) {
             this.detector = new NewNETS(0);
-        }else if (Objects.equals(Constants.methodToGenerateFingerprint, "MCOD_CENTRALIZE")){
+        } else if (Objects.equals(Constants.methodToGenerateFingerprint, "MCOD_CENTRALIZE")) {
             this.detector = new MCOD();
         }
     }
@@ -79,7 +97,7 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
                     return value;
                 });
 
-            }else {
+            } else {
                 delta = fingerprints.get(id);
                 unitsStatusMap.compute(id, (key, value) -> {
                     if (value == null) {
@@ -108,7 +126,12 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
             // node has finished collecting data, entering into the N-N phase, only one thread go into this loop
             this.flag = true; //indicate to other nodes I am ready
             for (UnitInNode unitInNode : unitsStatusMap.values()) {
-                unitInNode.updateSafeness();
+//                unitInNode.updateSafeness();
+                if (unitInNode.pointCnt > maxK) {
+                    unitInNode.isSafe = 2;
+                } else {
+                    unitInNode.isSafe = 1;
+                }
             }
 
             //自己有的clients汇总答案信息
@@ -116,7 +139,7 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
                     unitsStatusMap.keySet().stream().filter(key -> unitsStatusMap.get(key).isSafe != 2).toList();
             for (List<Double> unsafeUnit : unSafeUnits) {
                 List<UnitInNode> unitInNodeList = unitsStatusMap.values().stream()
-                        .filter(x -> this.handler.neighboringSet(unsafeUnit, x.unitID)).toList();
+                        .filter(x -> this.handler.neighboringSet(unsafeUnit, x.unitID, maxR)).toList();
                 if (!unitResultInfo.containsKey(unsafeUnit)) {
                     unitResultInfo.put(unsafeUnit, Collections.synchronizedList(new ArrayList<>()));
                 }
@@ -187,12 +210,14 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
         for (List<Double> UnitID : unitResultInfo.keySet()) {
             List<UnitInNode> list = unitResultInfo.get(UnitID);
             //add up all point count
-            Optional<UnitInNode> exist = list.stream().filter(x -> x.unitID.equals(UnitID) && (x.pointCnt > Constants.K)).findAny();
+//            Optional<UnitInNode> exist = list.stream().filter(x -> x.unitID.equals(UnitID) && (x.pointCnt > Constants.K)).findAny();
+            Optional<UnitInNode> exist = list.stream().filter(x -> x.unitID.equals(UnitID) && (x.pointCnt > maxK)).findAny();
             if (exist.isPresent()) {
                 unitsStatusMap.get(UnitID).isSafe = 2;
             }
             int totalCnt = list.stream().mapToInt(x -> x.pointCnt).sum();
-            if (totalCnt <= Constants.K) {
+//            if (totalCnt <= Constants.K) {
+            if (totalCnt <= minK) {
                 unitsStatusMap.get(UnitID).isSafe = 0;
             }
         }
@@ -209,7 +234,7 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
         Map<List<Double>, List<UnitInNode>> result = new HashMap<>();
         for (List<Double> unit : unSateUnits) {
             List<UnitInNode> unitInNodeList = unitsStatusMap.values().stream()
-                    .filter(x -> this.handler.neighboringSet(unit, x.unitID)).toList();
+                    .filter(x -> this.handler.neighboringSet(unit, x.unitID, maxR)).toList();
             result.put(unit, unitInNodeList);
         }
         return result;
@@ -246,6 +271,8 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
         return result;
     }*/
     public volatile boolean ready = false;
+
+    // for centralized
     @Override
     public Set<Vector> uploadAndDetectOutlier(List<Vector> data) throws InvalidException, TException {
         rawData.addAll(data);
@@ -271,7 +298,7 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
                 thread.start();
                 threads.add(thread);
             }
-            for (Thread t: threads){
+            for (Thread t : threads) {
                 try {
                     t.join();
                 } catch (InterruptedException e) {
@@ -283,17 +310,102 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
                 dataSize.set(0);
             }
             this.detector.detectOutlier(allData);
-            if (Constants.currentSlideID >= Constants.nS - 1){
+            if (Constants.currentSlideID >= Constants.nS - 1) {
                 result = new HashSet<>(this.detector.outlierVector);
-            }
-            else result = new HashSet<>();
+            } else result = new HashSet<>();
             this.flag = true; // 同步device
             allData.clear();
             rawData.clear();
         }
-        while (!this.flag){
+        while (!this.flag) {
         }
         return result;
+    }
+
+    public volatile boolean ready_RK = false;
+    public List<Integer> Ks = Collections.synchronizedList(new ArrayList<>());
+    public List<Double> Rs = Collections.synchronizedList(new ArrayList<>());
+    volatile Boolean flag_RK = false;
+
+    @Override
+    public double synchronizeR_K(int K, double R) {
+        // 1.等待所有自己的device上传RK，找到local的 minR minK maxR maxK
+        count_RK.incrementAndGet();
+        Ks.add(K);
+        Rs.add(R);
+        boolean localFlag = count_RK.compareAndSet(Constants.dn, 0);
+        System.out.println(count_RK);
+        System.out.println(localFlag);
+
+        if (localFlag) {
+            minR = Collections.min(Rs);
+            minK = Collections.min(Ks);
+            maxR = Collections.max(Rs);
+            maxK = Collections.max(Ks);
+
+            Rs.clear();
+            Ks.clear();
+            Rs.add(minR);
+            Rs.add(maxR);
+            Ks.add(minK);
+            Ks.add(maxK);
+
+            // 2.调用其他node的sendRK, 找到global的 minR minK maxR maxK
+            this.ready_RK = true;
+            ArrayList<Thread> threads = new ArrayList<>();
+            for (int edgeNodeCode : EdgeNodeNetwork.nodeHashMap.keySet()) {
+                if (edgeNodeCode == this.belongedNode.hashCode()) continue;
+                Thread thread = new Thread(() -> {
+                    try {
+                        List<Double> res = clientsForEdgeNodes.get(edgeNodeCode).sendRs();
+                        Rs.addAll(res);
+                    } catch (TException e) {
+                        e.printStackTrace();
+                    }
+                });
+                thread.start();
+                threads.add(thread);
+            }
+            for (Thread t : threads) {
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            for (int edgeNodeCode : EdgeNodeNetwork.nodeHashMap.keySet()) {
+                if (edgeNodeCode == this.belongedNode.hashCode()) continue;
+                Thread thread = new Thread(() -> {
+                    try {
+                        List<Integer> res = clientsForEdgeNodes.get(edgeNodeCode).sendKs();
+                        Ks.addAll(res);
+                    } catch (TException e) {
+                        e.printStackTrace();
+                    }
+                });
+                thread.start();
+                threads.add(thread);
+            }
+            for (Thread t : threads) {
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            minR = Collections.min(Rs);
+            minK = Collections.min(Ks);
+            maxR = Collections.max(Rs);
+            maxK = Collections.max(Ks);
+            System.out.println("node "+ this.hashCode() + ": minR: " + minR + " maxR: " + maxR + " minK: " + minK + " maxK: " + maxK);
+            this.flag_RK = true; // 同步device
+        }
+        while (!this.flag_RK) {
+        }
+        // 3.储存并返回minR给自己的各device
+        return minR;
     }
 
     public void sendDeviceResult() {
@@ -335,20 +447,30 @@ public class EdgeNodeImpl implements EdgeNodeService.Iface {
     @Override
     public List<Vector> sendAllNodeData() throws InvalidException, TException {
 //        System.out.println("Thead " + Thread.currentThread().getId() + " sendAllNodeData 457");
-        while(!this.ready){
+        while (!this.ready) {
         }
         return new ArrayList<>(this.rawData);
     }
 
-    public double synchronizeRK(){
-        // 1.等待所有自己的device上传RK，找到local的 minR minK maxR maxK
-        // 2.调用其他node的sendRK, 找到global的 minR minK maxR maxK
-        // 3.储存并返回minR给自己的各device
-        return 0;
+    @Override
+    public List<Double> sendRs() throws InvalidException, TException {
+        while (!this.ready_RK) {
+        }
+        List<Double> res = new ArrayList<>();
+        res.add(minR);
+        res.add(maxR);
+        return res;
     }
 
-    public ArrayList<Double> sendRK(){
-        //返回自己的minR minK maxR maxK
-        return null;
+    @Override
+    public List<Integer> sendKs() throws InvalidException, TException {
+        while (!this.ready_RK) {
+        }
+        List<Integer> res = new ArrayList<>();
+        res.add(minK);
+        res.add(maxK);
+        return res;
     }
+
+
 }

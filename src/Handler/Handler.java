@@ -10,5 +10,5 @@ public abstract class Handler {
         this.node = node;
     }
 
-    public abstract boolean neighboringSet(List<Double> c1, List<Double> c2);
+    public abstract boolean neighboringSet(List<Double> c1, List<Double> c2, double R);
 }

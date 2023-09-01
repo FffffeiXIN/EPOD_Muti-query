@@ -10,8 +10,9 @@ public class NETSHandler extends Handler{
         super(node);
     }
 
+    // todo#: 改R 咋没用到？？？？
     @Override
-    public boolean neighboringSet(List<Double> c1, List<Double> c2) {
+    public boolean neighboringSet(List<Double> c1, List<Double> c2, double R) {
         double ss = 0;
         double neighCellIdxDist = Math.sqrt(Constants.subDim)*2;
         double neighCellFullDimIdxDist = Math.sqrt(Constants.dim)*2;

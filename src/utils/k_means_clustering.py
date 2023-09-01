@@ -10,13 +10,16 @@ import random
 # Configuration that need to be changed each time
 n_nodes = 6
 n_clients = 10
-mix_rate_node = 0.1
-mix_rate_client = 0.1
+mix_rate_node = 0.05
+mix_rate_client = 0.05
 nW = 20
 W = 5000
-data = pd.read_table('/home/shimin/EPOD/Datasets/tao.txt', sep=',', header=None)
+data = pd.read_table('/home/shimin/EPOD/Datasets/stock.txt', sep=',', header=None)
 prefix = "/home/shimin/EPOD/Datasets/DeviceId_data/Node_" \
-         + str(n_nodes) + "_Device_" + str(n_clients) + "_TAO_" + str(mix_rate_node) + "/"
+         + str(n_nodes) + "_Device_" + str(n_clients) + "_STK_" + str(mix_rate_node) + "/"
+# data = pd.read_table('E:\\DBGroup\\Huan\\EPOD_Muti-query\\Datasets\\stock.txt', sep=',', header=None)
+# prefix = "E:\\DBGroup\\Huan\\EPOD_Muti-query\\Datasets\\DeviceId_data\\Node_" \
+#          + str(n_nodes) + "_Device_" + str(n_clients) + "_STK_" + str(mix_rate_node) + "\\"
 
 # read datasets
 df = pd.DataFrame(data)
@@ -151,7 +154,7 @@ while True:
         if len(clusters2[i]) < smallest:
             smallest = len(clusters2[i])
 #     if smallest >= W * nW:
-    if smallest >= 30000:
+    if smallest >= 20000:
         break
 # print to file
 try:

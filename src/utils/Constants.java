@@ -14,7 +14,7 @@ public class Constants {
     public static int nW = 20;
     public static int max_nn = 6;
     public static int max_dn = 10;
-    public static String methodToGenerateFingerprint = "NETS"; //"NETS" "MCOD" "NETS_CENTRALIZE" "MCOD_CENTRALIZE" "NETS_P2P" "MCOD_P2P"
+    public static String methodToGenerateFingerprint = "MCOD"; //"NETS" "MCOD" "NETS_CENTRALIZE" "MCOD_CENTRALIZE" "NETS_P2P" "MCOD_P2P"
     public static String dataset = "STK"; //"FC"(ignore) "TAO" "GAS" "STK" "GAU" "EM" "HPC"
 
     //calculated automatically
@@ -37,11 +37,12 @@ public class Constants {
     public static String timePrefix = Constants.prefix + "/Timestamp_data_" + timelineSpeed + "/Node_6_Device_10_" + dataset + "_" + mix_rate_node + "/";
     public static String variable = "default";
     public static String resultPrefix = "src/Result/"+methodToGenerateFingerprint +"_"+ nn + "*" + dn + "_" + dataset + "_"+ variable + "/";
+//    public static String resultPrefix = "E:\\DBGroup\\Huan\\EPOD_Muti-query\\src\\Result\\"+methodToGenerateFingerprint +"_"+ nn + "*" + dn + "_" + dataset + "_"+ variable + "\\";
 //    public static String getDataInfoCSV = resultPrefix+"get_data_info.csv";
 //    public static String supportDeviceInfoCSV = resultPrefix+"support_device_info.csv";
 
 
-//    public static String resultFile = resultPrefix + "_Result_"+Constants.methodToGenerateFingerprint+ "_outliers.txt";
+    public static String resultFile = "_Result_"+Constants.methodToGenerateFingerprint+ "_outliers.txt";
 //    public static String resultNaiveFile = resultPrefix+ "_Result_Naive_" + "_outliers.txt";
 //    public static String naiveInfo = resultPrefix+ "_Result_Naive_info" + "_outliers.txt
 
@@ -55,11 +56,8 @@ public class Constants {
     public static String randomClusterFileName = prefix + "RandomCluster.txt";
 
     //========================for multiple query========================
-    public static double[] Rs = new double[nn*dn];
-    public static int[] Ks = new int[nn*dn];
-    static Random random = new Random();
-    public static boolean isVariousR = false;
-    public static boolean isVariousK = false;
+    public static boolean isVariousR = true;
+    public static boolean isVariousK = true;
     public static boolean isMultipleQuery = isVariousR || isVariousK;
 
     static {
@@ -126,17 +124,17 @@ public class Constants {
         }
 
         //========================for multiple query========================
-        for (int i = 0; i < nn*dn; i++) {
-            if (isVariousR) {
-                Rs[i] = R + random.nextDouble() * R * 0.5 * Math.pow(-1, i);
-            }
-            else Rs[i] = R;
-
-            if (isVariousK) {
-                Ks[i] = K + random.nextInt(10) * (int) Math.pow(-1, i);
-            }
-            else Ks[i] = K;
-        }
+//        for (int i = 0; i < nn*dn; i++) {
+//            if (isVariousR) {
+//                Rs[i] = R + random.nextDouble() * R * 0.5 * Math.pow(-1, i);
+//            }
+//            else Rs[i] = R;
+//
+//            if (isVariousK) {
+//                Ks[i] = K + random.nextInt(10) * (int) Math.pow(-1, i);
+//            }
+//            else Ks[i] = K;
+//        }
     }
 }
 

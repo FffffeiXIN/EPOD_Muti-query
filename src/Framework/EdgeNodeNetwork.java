@@ -3,6 +3,7 @@ package Framework;
 import RPC.DeviceService;
 import RPC.EdgeNodeService;
 import RPC.Vector;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -28,32 +29,34 @@ public class EdgeNodeNetwork {
     public static HashMap<Integer, Device> deviceHashMap = new HashMap<>();
     public static HashMap<Integer, EdgeNode> nodeHashMap = new HashMap<>();
     public static Set<Vector> outliers; //only used to print out outlier
-//    public static BufferedWriter outlierFw;
+    public static BufferedWriter outlierFw;
 //    public static BufferedWriter outlierNaiveFw;
 //    public static BufferedWriter naiveInfo;
 
     public static BufferedWriter getDataInfoCSV;
     public static BufferedWriter supportDeviceInfoCSV;
 
-    //==================for measurement==================
+    public static boolean multiQuery = Constants.isMultipleQuery;
+    public static AtomicInteger receive_minR_device = new AtomicInteger(0);
 
+    //==================for measurement==================
     static long time = 0;
     static long totalTime = 0;
 
 
     static {
         outliers = Collections.synchronizedSet(new HashSet<>());
-//        try {
+        try {
 //            getDataInfoCSV = new BufferedWriter(new FileWriter(Constants.getDataInfoCSV));
 //            supportDeviceInfoCSV = new BufferedWriter(new FileWriter(Constants.supportDeviceInfoCSV));
 
 
-//            outlierFw = new BufferedWriter(new FileWriter(Constants.resultFile));
+            outlierFw = new BufferedWriter(new FileWriter(Constants.resultFile));
 //            outlierNaiveFw = new BufferedWriter(new FileWriter(Constants.resultNaiveFile));
 //            naiveInfo = new BufferedWriter(new FileWriter(Constants.naiveInfo));
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static EdgeNode createEdgeNode() {
@@ -62,7 +65,7 @@ public class EdgeNodeNetwork {
         return edgeNode;
     }
 
-    public static void resetEdgeNetwork(){
+    public static void resetEdgeNetwork() {
         time = 0;
         totalTime = 0;
         deviceHashMap = new HashMap<>();
@@ -113,18 +116,23 @@ public class EdgeNodeNetwork {
 
         //========================for multiple query========================
         //synchronize global parameters
-        parametersPreprocessing(Constants.isMultipleQuery);
+        if (multiQuery)
+            parametersPreprocessing();
 
-//        try {
-//            outlierFw = new BufferedWriter(new FileWriter(Constants.resultFile));
+        for (Device device : deviceHashMap.values()) {
+            device.handler.setDetectMethod();
+        }
+
+        try {
+            outlierFw = new BufferedWriter(new FileWriter(Constants.resultFile));
 //            outlierNaiveFw = new BufferedWriter(new FileWriter(Constants.resultNaiveFile));
 //            naiveInfo = new BufferedWriter(new FileWriter(Constants.naiveInfo));
 
 //            getDataInfoCSV = new BufferedWriter(new FileWriter(Constants.getDataInfoCSV));
 //            supportDeviceInfoCSV = new BufferedWriter(new FileWriter(Constants.supportDeviceInfoCSV));
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         int itr = 0;
         while (itr < Constants.nS + Constants.nW - 1) {
 
@@ -142,11 +150,11 @@ public class EdgeNodeNetwork {
                 int finalItr = itr;
                 Thread t = new Thread(() -> {
                     try {
-                        if (Constants.methodToGenerateFingerprint.contains("CENTRALIZE")){
+                        if (Constants.methodToGenerateFingerprint.contains("CENTRALIZE")) {
                             outliers.addAll(device.handler.detectOutlier_Centralize(finalItr));
-                        }else if (Constants.methodToGenerateFingerprint.contains("P2P")){
+                        } else if (Constants.methodToGenerateFingerprint.contains("P2P")) {
                             outliers.addAll(device.handler.detectOutlier_P2P(finalItr));
-                        }else {
+                        } else {
                             outliers.addAll(device.handler.detectOutlier(finalItr));
                         }
                     } catch (Throwable e) {
@@ -180,7 +188,7 @@ public class EdgeNodeNetwork {
 //                System.out.println("Total time cost is : " + totalTime);
                 time = 0;
             }
-//            printOutliers();
+            printOutliers();
 
 //            if (itr == Constants.nS + Constants.nS - 1)
 //                testing.write("Number of outliers: " + outliers.size()+"\n");
@@ -226,7 +234,7 @@ public class EdgeNodeNetwork {
 //        testNetwork.testing.write("===============================\n");
 //        testNetwork.testing.flush();
 //        System.out.println("Total interacted clients is: " + supportDevices);
-//        outlierFw.close();
+        outlierFw.close();
 //        outlierNaiveFw.close();
 //        naiveInfo.close();
 //        getDataInfoCSV.flush();
@@ -235,29 +243,29 @@ public class EdgeNodeNetwork {
         stopNetwork();
     }
 
-//    public static void printOutliers() throws IOException {
-//        HashSet<Vector> tmpList = new HashSet<>();
-//        for (Vector v : outliers) {
-//            Vector tmp = new Vector(v);
-//            tmp.backup = v.backup;
-//            tmpList.add(tmp);
-//        }
-//
-//        if (Constants.methodToGenerateFingerprint.equals("NETS")) {
-//            List<Vector> list = tmpList.stream().sorted(Comparator.comparing(o -> o.backup)).toList();
-//            for (Vector v : list) {
-//                outlierFw.write(v.backup.values + "\n");
-//            }
-//        }
-//        else {
-//            List<Vector> list = tmpList.stream().sorted(Comparator.comparing(o -> o.values.get(0))).toList();
-//            for (Vector v : list) {
-//                outlierFw.write(v.values + "\n");
-//            }
-//        }
-//        outlierFw.write("====================================\n");
-//        outlierFw.flush();
-//    }
+    public static void printOutliers() throws IOException {
+        HashSet<Vector> tmpList = new HashSet<>();
+        for (Vector v : outliers) {
+            Vector tmp = new Vector(v);
+            tmp.backup = v.backup;
+            tmpList.add(tmp);
+        }
+
+        if (Constants.methodToGenerateFingerprint.equals("NETS")) {
+            List<Vector> list = tmpList.stream().sorted(Comparator.comparing(o -> o.backup)).toList();
+            for (Vector v : list) {
+                outlierFw.write(v.backup.values + "\n");
+            }
+        }
+        else {
+            List<Vector> list = tmpList.stream().sorted(Comparator.comparing(o -> o.values.get(0))).toList();
+            for (Vector v : list) {
+                outlierFw.write(v.values + "\n");
+            }
+        }
+        outlierFw.write("====================================\n");
+        outlierFw.flush();
+    }
 
     public static void stopNetwork() {
         for (EdgeNode node : nodeHashMap.values()) {
@@ -316,12 +324,28 @@ public class EdgeNodeNetwork {
     }
 
 
-    public static void parametersPreprocessing(Boolean isMultipleQuery){
-        if (!isMultipleQuery) {
-            // 所有设备的R K minR minK maxR maxK 为Constant.R K
+    public static void parametersPreprocessing() throws TException {
+        // 1. 调用divice的上传R K
+        ArrayList<Thread> threads = new ArrayList<>();
+        for (Device device : deviceHashMap.values()) {
+            Thread t = new Thread(() -> {
+                try {
+                    device.handler.uploadR_K();
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            });
+            threads.add(t);
+            t.start();
         }
-        else {
-            // 1. 调用divice的上传R K
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        while (receive_minR_device.get()<Constants.dn*Constants.nn) {
         }
     }
 }

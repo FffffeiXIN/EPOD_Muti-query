@@ -23,9 +23,41 @@ public class MCOD extends Detector {
 
     //=========================for measurement=========================
     public int processExternalPoints = 0;
+    //=========================mutiQuery=========================
+    public int K;
+    public double R;
+    public double min_R;
 
     public MCOD() {
         super();
+
+        K = Constants.K;
+        R = Constants.R;
+        min_R = Constants.R;
+
+        map_to_MCO = new HashMap<>();
+        internal_dataList = new LinkedHashMap<>();
+        filled_clusters = new HashMap<>();
+        unfilled_clusters = new HashMap<>();
+        mtree = new MTreeClass();
+        outliers = new HashSet<>();
+        eventQueue = new PriorityQueue<MCO>(new Comparator<MCO>() {
+            @Override
+            public int compare(MCO o1, MCO o2) {
+                return o1.ev - o2.ev;
+            }
+        });
+        external_info = new HashMap<>();
+    }
+
+    public MCOD(int K, double min_R, double R) {
+        super();
+
+        this.K = K;
+        this.R = R;
+        this.min_R = min_R;
+        System.out.println("mcod " + this.hashCode() + ": K is " + K + " min_R is " + min_R + " R is " + R);
+
         map_to_MCO = new HashMap<>();
         internal_dataList = new LinkedHashMap<>();
         filled_clusters = new HashMap<>();
@@ -79,7 +111,7 @@ public class MCOD extends Detector {
         internal_dataList.put(Constants.currentSlideID, new ArrayList<>());
         data.forEach(this::processNewData);
 
-        process_event_queue(); //todo: check改到这对不对
+        process_event_queue();
         this.outlierVector = outliers;
     }
 
@@ -115,7 +147,6 @@ public class MCOD extends Detector {
             }
         }
         // remove outlier中过期的点
-        // todo:  to be checked 6.28
         outliers.remove(d);
 
         //remove outlier中点的过期的前继
@@ -145,10 +176,12 @@ public class MCOD extends Detector {
             if ((fromShrinkCluster||firstForm)&&center.equals(d.center)) continue;
 
             // 如果center中心离d 3R/2以内，检查这个unfilled cluster里的所有点
-            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * Constants.R / 2) {
+//            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * Constants.R / 2) {
+            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * min_R / 2) {
                 ArrayList<MCO> unfilled_cluster = unfilled_clusters.get(center);
                 for (MCO point : unfilled_cluster) {
-                    if (point != d && mtree.getDistanceFunction().calculate(point, d) <= Constants.R) {
+//                    if (point != d && mtree.getDistanceFunction().calculate(point, d) <= Constants.R) {
+                    if (point != d && mtree.getDistanceFunction().calculate(point, d) <= min_R) {
                         if (isSameSlide(point, d) == -1) {
                             //p在d前面
                             d.exps.add(point.slideID + Constants.nS);
@@ -186,10 +219,12 @@ public class MCOD extends Detector {
     private void update_info_filled(MCO d) {
         for (MCO center : filled_clusters.keySet()) {
             // 如果center中心离d 3R/2以内，检查这个filled cluster里的所有点
-            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * Constants.R / 2) {
+//            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * Constants.R / 2) {
+            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * min_R / 2) {
                 ArrayList<MCO> filled_cluster = filled_clusters.get(center);
                 for (MCO point : filled_cluster) {
-                    if (mtree.getDistanceFunction().calculate(point, d) <= Constants.R) {
+//                    if (mtree.getDistanceFunction().calculate(point, d) <= Constants.R) {
+                    if (mtree.getDistanceFunction().calculate(point, d) <= min_R) {
                         if (isSameSlide(d, point) <= 0) {
                             //p is succeeding neighbor
                             d.updateSucceeding(point);
@@ -247,7 +282,8 @@ public class MCOD extends Detector {
 
     private void check_filled(MCO center) {
         ArrayList<MCO> cluster = unfilled_clusters.get(center);
-        if (cluster.size() > Constants.K) {
+//        if (cluster.size() > Constants.K) {
+        if (cluster.size() > K) {
             unfilled_clusters.remove(center);
             filled_clusters.put(center, cluster);
             cluster.forEach(p -> {
@@ -260,7 +296,8 @@ public class MCOD extends Detector {
 
     private void check_shrink(MCO center) {
         ArrayList<MCO> cluster = filled_clusters.get(center);
-        if (cluster.size() <= Constants.K) {
+//        if (cluster.size() <= Constants.K) {
+        if (cluster.size() <= K) {
             // 表明变成了unfilled cluster，更新cluster的状态
             filled_clusters.remove(center);
             unfilled_clusters.put(center, cluster);
@@ -302,13 +339,14 @@ public class MCOD extends Detector {
         // filled 里的自己不用存succeeding和preceding，只用更新unfilled里的点的邻居
         for (MCO center : unfilled_clusters.keySet()) {
             // 如果center中心离d 3R/2以内，检查这个unfilled cluster里的所有点
-            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * Constants.R / 2) {
+//            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * Constants.R / 2) {
+            if (mtree.getDistanceFunction().calculate(center, d) <= 3 * min_R / 2) {
                 ArrayList<MCO> unfilled_cluster = unfilled_clusters.get(center);
                 for (MCO point : unfilled_cluster) {
-                    if (mtree.getDistanceFunction().calculate(point, d) <= Constants.R) {
+//                    if (mtree.getDistanceFunction().calculate(point, d) <= Constants.R) {
+                    if (mtree.getDistanceFunction().calculate(point, d) <= min_R) {
                         //好像没有这种情况了？
                         if (isSameSlide(d, point) == -1) {
-                            //TODO： 看看这里究竟能不能进来
                             point.exps.add(d.slideID + Constants.nS);
                         } else {
                             point.updateSucceeding(d);
@@ -354,7 +392,8 @@ public class MCOD extends Detector {
             min_distance = mtree.getDistanceFunction().calculate(nearest_filled_center, d);
         }
         //assign to cluster if min distance <= R/2
-        if (min_distance <= Constants.R / 2) {
+//        if (min_distance <= Constants.R / 2) {
+        if (min_distance <= min_R / 2) {
             addToFilledCluster(nearest_filled_center, d);
         } else {
             // 2.是否可加入unfilled_cluster
@@ -363,7 +402,8 @@ public class MCOD extends Detector {
             if (nearest_unfilled_center_id != null) { //found the nearest cluster
                 min_distance = mtree.getDistanceFunction().calculate(nearest_unfilled_center_id, d);
             }
-            if (min_distance <= Constants.R / 2) {
+//            if (min_distance <= Constants.R / 2) {
+            if (min_distance <= min_R / 2) {
                 addToUnfilledCluster(nearest_unfilled_center_id, d);
             } else {
                 // 3.自己成一个unfilled_cluster
@@ -377,14 +417,17 @@ public class MCOD extends Detector {
     private void checkInlier(MCO inPD, Iterator<MCO> iterator) {
         Collections.sort(inPD.exps);
 
-        while (inPD.exps.size() > Constants.K - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
+//        while (inPD.exps.size() > Constants.K - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
+        while (inPD.exps.size() > K - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
             inPD.exps.remove(0);
         }
         if (inPD.exps.size() > 0) inPD.ev = inPD.exps.get(0);
         else inPD.ev = 0;
 
-        if (inPD.exps.size() + inPD.numberOfSucceeding >= Constants.K) {
-            if (inPD.numberOfSucceeding >= Constants.K) {
+//        if (inPD.exps.size() + inPD.numberOfSucceeding >= Constants.K) {
+        if (inPD.exps.size() + inPD.numberOfSucceeding >= K) {
+//            if (inPD.numberOfSucceeding >= Constants.K) {
+            if (inPD.numberOfSucceeding >= K) {
                 eventQueue.remove(inPD);
                 iterator.remove();
             } else {
@@ -406,14 +449,17 @@ public class MCOD extends Detector {
     private void checkInlier(MCO inPD) {
         Collections.sort(inPD.exps);
 
-        while (inPD.exps.size() > Constants.K - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
+//        while (inPD.exps.size() > Constants.K - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
+        while (inPD.exps.size() > K - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
             inPD.exps.remove(0);
         }
         if (inPD.exps.size() > 0) inPD.ev = inPD.exps.get(0);
         else inPD.ev = 0;
 
-        if (inPD.exps.size() + inPD.numberOfSucceeding >= Constants.K) {
-            if (inPD.numberOfSucceeding >= Constants.K) {
+//        if (inPD.exps.size() + inPD.numberOfSucceeding >= Constants.K) {
+        if (inPD.exps.size() + inPD.numberOfSucceeding >= K) {
+//            if (inPD.numberOfSucceeding >= Constants.K) {
+            if (inPD.numberOfSucceeding >= K) {
                 eventQueue.remove(inPD);
                 outliers.remove(inPD);
             } else {
@@ -443,7 +489,6 @@ public class MCOD extends Detector {
 //                    System.out.print(x.exps.get(i) + " ");
 //                }
 //            }
-            // Todo: check x.exps.get(0) 改成 x.ev
             while (x.exps.size() != 0 && x.ev <= Constants.currentSlideID) { //@shimin
 
                 x.exps.remove(0);
@@ -453,9 +498,11 @@ public class MCOD extends Detector {
                 } else
                     x.ev = x.exps.get(0);
             }
-            if (x.exps.size() + x.numberOfSucceeding < Constants.K)
+//            if (x.exps.size() + x.numberOfSucceeding < Constants.K)
+            if (x.exps.size() + x.numberOfSucceeding < K)
                 outliers.add(x);
-            else if (x.numberOfSucceeding < Constants.K && x.exps.size() + x.numberOfSucceeding >= Constants.K){
+//            else if (x.numberOfSucceeding < Constants.K && x.exps.size() + x.numberOfSucceeding >= Constants.K){
+            else if (x.numberOfSucceeding < K && x.exps.size() + x.numberOfSucceeding >= K){
                 eventQueue.add(x);
             }
 
@@ -553,6 +600,9 @@ public class MCOD extends Detector {
                 o.ev = Constants.currentSlideID + 1;
                 eventQueue.add(o);
             }
+
+            // todo#: 传回信息多一个数量，嘚在getExternalData里面接收一下，后面找个位置更新
+
             //确定为outlier的点不用做操作
             //不确定的点：
             // 从离他1/2R中的cluster的点之和是否大于K，如果大于K，加入event queue，event time 设为下一个时间点
@@ -563,7 +613,8 @@ public class MCOD extends Detector {
                 for (Map.Entry<List<Double>, Integer> entry : external_info.entrySet()) {
                     List<Double> key = entry.getKey();
                     double distance = distance(key, o.values);
-                    if (distance <= Constants.R * 3 / 2) {
+//                    if (distance <= Constants.R * 3 / 2) {
+                    if (distance <= R * 3 / 2) {
                         cluster3R_2.add(key);
                     }
                 }
@@ -582,7 +633,8 @@ public class MCOD extends Detector {
                             if (cur_cluster_data != null) {
                                 processExternalPoints += cur_cluster_data.size();
                                 for (Vector v : cur_cluster_data) {
-                                    if (distance(v.values, o.values) <= Constants.R) {
+//                                    if (distance(v.values, o.values) <= Constants.R) {
+                                    if (distance(v.values, o.values) <= R) {
                                         if (isSameSlide(o, v) <= 0) {
                                             o.updateSucceeding(v);
                                         } else {
@@ -597,7 +649,8 @@ public class MCOD extends Detector {
                     o.last_calculate_time++;
 
                     checkInlier(o, iterator);
-                    if (o.numberOfSucceeding + o.exps.size() >= Constants.K) {
+//                    if (o.numberOfSucceeding + o.exps.size() >= Constants.K) {
+                    if (o.numberOfSucceeding + o.exps.size() >= K) {
                         continue outlierLoop;
                     }
                 }
