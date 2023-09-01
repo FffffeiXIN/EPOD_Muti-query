@@ -13,4 +13,7 @@ service EdgeNodeService {
    map<list<double>, list<Device.UnitInNode>> provideNeighborsResult(1:list<list<double>> unSateUnits, 2: i32 edgeNodeHash) throws (1: Device.InvalidException invalid),
    set<Device.Vector> uploadAndDetectOutlier(1:list<Device.Vector> data) throws (1: Device.InvalidException invalid),
    list<Device.Vector> sendAllNodeData() throws (1: Device.InvalidException invalid),
+   double synchronizeR_K(1: i32 K, 2: double R) throws (1: Device.InvalidException invalid),
+   list<double> sendRs() throws (1: Device.InvalidException invalid),
+   list<i32> sendKs() throws (1: Device.InvalidException invalid),
 }
