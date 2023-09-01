@@ -117,7 +117,7 @@ public class EdgeNodeNetwork {
 
         //========================for multiple query========================
         //synchronize global parameters
-        if (multiQuery)
+        if (multiQuery && !Constants.methodToGenerateFingerprint.contains("P2P") && !Constants.methodToGenerateFingerprint.contains("CENTRALIZE"))
             parametersPreprocessing();
 
         for (Device device : deviceHashMap.values()) {
@@ -200,23 +200,24 @@ public class EdgeNodeNetwork {
             for (Device device : deviceHashMap.values()) {
                 allData.addAll(device.handler.rawData);
             }
-            HashSet<Vector> outliers = CompareResult.detectOutliersNaive(allData, itr);
+
+//            HashSet<Vector> outliers = CompareResult.detectOutliersNaive(allData, itr);
             //"TAO" "GAS" "STK" "GAU" "EM" "HPC"
-            if (Constants.methodToGenerateFingerprint.equals("NETS")) {
-                List<Vector> list = outliers.stream().sorted(
-                        Vector::compareTo).toList();
-                for (Vector v : list) {
-                    outlierNaiveFw.write(v + "\n");
-                }
-            } else {
-                List<Vector> list = outliers.stream().sorted(
-                        Comparator.comparing(o -> o.values.get(0))).toList();
-                for (Vector v : list) {
-                    outlierNaiveFw.write(v.values + "\n");
-                }
-            }
-            outlierNaiveFw.write("====================================\n");
-            outlierNaiveFw.flush();
+//            if (Constants.methodToGenerateFingerprint.equals("NETS")) {
+//                List<Vector> list = outliers.stream().sorted(
+//                        Vector::compareTo).toList();
+//                for (Vector v : list) {
+//                    outlierNaiveFw.write(v + "\n");
+//                }
+//            } else {
+//                List<Vector> list = outliers.stream().sorted(
+//                        Comparator.comparing(o -> o.values.get(0))).toList();
+//                for (Vector v : list) {
+//                    outlierNaiveFw.write(v.values + "\n");
+//                }
+//            }
+//            outlierNaiveFw.write("====================================\n");
+//            outlierNaiveFw.flush();
             itr++;
         }
 

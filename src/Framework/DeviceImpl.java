@@ -59,7 +59,7 @@ public class DeviceImpl implements DeviceService.Iface {
 //            this.myK = Constants.K + random.nextInt((int) (Constants.K * 0.3)) * (int) Math.pow(-1, deviceId);
             this.myK = 5 + deviceId; // fixed test for STK
         else this.myK = Constants.K;
-        minR = Constants.R;
+        minR = this.myR;
 
 //        if (Constants.methodToGenerateFingerprint.contains("NETS")) {
 //            this.detector = new NewNETS(0);

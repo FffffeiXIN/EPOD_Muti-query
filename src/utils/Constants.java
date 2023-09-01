@@ -14,7 +14,7 @@ public class Constants {
     public static int nW = 20;
     public static int max_nn = 6;
     public static int max_dn = 10;
-    public static String methodToGenerateFingerprint = "MCOD"; //"NETS" "MCOD" "NETS_CENTRALIZE" "MCOD_CENTRALIZE" "NETS_P2P" "MCOD_P2P"
+    public static String methodToGenerateFingerprint = "MCOD_P2P"; //"NETS" "MCOD" "NETS_CENTRALIZE" "MCOD_CENTRALIZE" "NETS_P2P" "MCOD_P2P"
     public static String dataset = "STK"; //"FC"(ignore) "TAO" "GAS" "STK" "GAU" "EM" "HPC"
 
     //calculated automatically
@@ -35,9 +35,11 @@ public class Constants {
 
     public static int timelineSpeed = 500;
     public static String timePrefix = Constants.prefix + "/Timestamp_data_" + timelineSpeed + "/Node_6_Device_10_" + dataset + "_" + mix_rate_node + "/";
-    public static String variable = "VariousR_VariousK";
+//    public static String variable = "VariousR_VariousK";
+//    public static String variable = "VariousK";
+    public static String variable = "VariousK";
     //========================for multiple query========================
-    public static boolean isVariousR = true;
+    public static boolean isVariousR = false;
     public static boolean isVariousK = true;
     public static boolean isMultipleQuery = isVariousR || isVariousK;
 
