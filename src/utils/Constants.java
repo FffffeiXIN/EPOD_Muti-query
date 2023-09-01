@@ -35,7 +35,12 @@ public class Constants {
 
     public static int timelineSpeed = 500;
     public static String timePrefix = Constants.prefix + "/Timestamp_data_" + timelineSpeed + "/Node_6_Device_10_" + dataset + "_" + mix_rate_node + "/";
-    public static String variable = "default";
+    public static String variable = "VariousR_VariousK";
+    //========================for multiple query========================
+    public static boolean isVariousR = true;
+    public static boolean isVariousK = true;
+    public static boolean isMultipleQuery = isVariousR || isVariousK;
+
     public static String resultPrefix = "src/Result/"+methodToGenerateFingerprint +"_"+ nn + "*" + dn + "_" + dataset + "_"+ variable + "/";
 //    public static String resultPrefix = "E:\\DBGroup\\Huan\\EPOD_Muti-query\\src\\Result\\"+methodToGenerateFingerprint +"_"+ nn + "*" + dn + "_" + dataset + "_"+ variable + "\\";
 //    public static String getDataInfoCSV = resultPrefix+"get_data_info.csv";
@@ -55,10 +60,6 @@ public class Constants {
     public static String gasFileName = prefix + "gas.txt";
     public static String randomClusterFileName = prefix + "RandomCluster.txt";
 
-    //========================for multiple query========================
-    public static boolean isVariousR = false;
-    public static boolean isVariousK = false;
-    public static boolean isMultipleQuery = isVariousR || isVariousK;
 
     static {
         if (dataset.contains("TAO") || dataset.contains("FC") || dataset.contains("RC")) {
