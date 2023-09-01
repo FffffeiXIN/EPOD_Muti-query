@@ -42,8 +42,8 @@ public class Constants {
 //    public static String supportDeviceInfoCSV = resultPrefix+"support_device_info.csv";
 
 
-    public static String resultFile = "_Result_"+Constants.methodToGenerateFingerprint+ "_outliers.txt";
-//    public static String resultNaiveFile = resultPrefix+ "_Result_Naive_" + "_outliers.txt";
+    public static String resultFile = resultPrefix+ "_Result_"+Constants.methodToGenerateFingerprint+ "_outliers.txt";
+    public static String resultNaiveFile = resultPrefix+ "_Result_Naive_" + "_outliers.txt";
 //    public static String naiveInfo = resultPrefix+ "_Result_Naive_info" + "_outliers.txt
 
     public static String forestCoverFileName = prefix + "fc.txt";
@@ -56,8 +56,8 @@ public class Constants {
     public static String randomClusterFileName = prefix + "RandomCluster.txt";
 
     //========================for multiple query========================
-    public static boolean isVariousR = true;
-    public static boolean isVariousK = true;
+    public static boolean isVariousR = false;
+    public static boolean isVariousK = false;
     public static boolean isMultipleQuery = isVariousR || isVariousK;
 
     static {

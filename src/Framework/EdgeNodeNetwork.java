@@ -10,6 +10,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import test.testNetwork;
+import utils.CompareResult;
 import utils.Constants;
 
 import java.io.BufferedWriter;
@@ -30,7 +31,7 @@ public class EdgeNodeNetwork {
     public static HashMap<Integer, EdgeNode> nodeHashMap = new HashMap<>();
     public static Set<Vector> outliers; //only used to print out outlier
     public static BufferedWriter outlierFw;
-//    public static BufferedWriter outlierNaiveFw;
+    public static BufferedWriter outlierNaiveFw;
 //    public static BufferedWriter naiveInfo;
 
     public static BufferedWriter getDataInfoCSV;
@@ -52,7 +53,7 @@ public class EdgeNodeNetwork {
 
 
             outlierFw = new BufferedWriter(new FileWriter(Constants.resultFile));
-//            outlierNaiveFw = new BufferedWriter(new FileWriter(Constants.resultNaiveFile));
+            outlierNaiveFw = new BufferedWriter(new FileWriter(Constants.resultNaiveFile));
 //            naiveInfo = new BufferedWriter(new FileWriter(Constants.naiveInfo));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -125,7 +126,7 @@ public class EdgeNodeNetwork {
 
         try {
             outlierFw = new BufferedWriter(new FileWriter(Constants.resultFile));
-//            outlierNaiveFw = new BufferedWriter(new FileWriter(Constants.resultNaiveFile));
+            outlierNaiveFw = new BufferedWriter(new FileWriter(Constants.resultNaiveFile));
 //            naiveInfo = new BufferedWriter(new FileWriter(Constants.naiveInfo));
 
 //            getDataInfoCSV = new BufferedWriter(new FileWriter(Constants.getDataInfoCSV));
@@ -199,23 +200,23 @@ public class EdgeNodeNetwork {
             for (Device device : deviceHashMap.values()) {
                 allData.addAll(device.handler.rawData);
             }
-//            HashSet<Vector> outliers = CompareResult.detectOutliersNaive(allData, itr);
-//            //"TAO" "GAS" "STK" "GAU" "EM" "HPC"
-//            if (Constants.methodToGenerateFingerprint.equals("NETS")) {
-//                List<Vector> list = outliers.stream().sorted(
-//                        Vector::compareTo).toList();
-//                for (Vector v : list) {
-//                    outlierNaiveFw.write(v + "\n");
-//                }
-//            } else {
-//                List<Vector> list = outliers.stream().sorted(
-//                        Comparator.comparingInt(o -> o.arrivalTime)).toList();
-//                for (Vector v : list) {
-//                    outlierNaiveFw.write(v + "\n");
-//                }
-//            }
-//            outlierNaiveFw.write("====================================\n");
-//            outlierNaiveFw.flush();
+            HashSet<Vector> outliers = CompareResult.detectOutliersNaive(allData, itr);
+            //"TAO" "GAS" "STK" "GAU" "EM" "HPC"
+            if (Constants.methodToGenerateFingerprint.equals("NETS")) {
+                List<Vector> list = outliers.stream().sorted(
+                        Vector::compareTo).toList();
+                for (Vector v : list) {
+                    outlierNaiveFw.write(v + "\n");
+                }
+            } else {
+                List<Vector> list = outliers.stream().sorted(
+                        Comparator.comparing(o -> o.values.get(0))).toList();
+                for (Vector v : list) {
+                    outlierNaiveFw.write(v.values + "\n");
+                }
+            }
+            outlierNaiveFw.write("====================================\n");
+            outlierNaiveFw.flush();
             itr++;
         }
 
@@ -235,7 +236,7 @@ public class EdgeNodeNetwork {
 //        testNetwork.testing.flush();
 //        System.out.println("Total interacted clients is: " + supportDevices);
         outlierFw.close();
-//        outlierNaiveFw.close();
+        outlierNaiveFw.close();
 //        naiveInfo.close();
 //        getDataInfoCSV.flush();
 //        getDataInfoCSV.close();

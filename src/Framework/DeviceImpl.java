@@ -51,11 +51,13 @@ public class DeviceImpl implements DeviceService.Iface {
 
         //========================for multiple query========================
         if (Constants.isVariousR)
-            this.myR = Constants.R + random.nextDouble() * Constants.R * 0.3 * Math.pow(-1, deviceId);
+//            this.myR = Constants.R + random.nextDouble() * Constants.R * 0.3 * Math.pow(-1, deviceId);
+            this.myR = 0.2 + deviceId * 0.1; // fixed test for STK
         else this.myR = Constants.R;
 
         if (Constants.isVariousK)
-            this.myK = Constants.K + random.nextInt((int) (Constants.K * 0.3)) * (int) Math.pow(-1, deviceId);
+//            this.myK = Constants.K + random.nextInt((int) (Constants.K * 0.3)) * (int) Math.pow(-1, deviceId);
+            this.myK = 5 + deviceId; // fixed test for STK
         else this.myK = Constants.K;
         minR = Constants.R;
 

@@ -43,6 +43,12 @@ public class testNetwork {
     }
 
     public static void simple_run() throws Throwable {
+
+//        Constants.isMultipleQuery = true;
+//        Constants.isVariousK = true;
+//        Constants.isVariousR = true;
+//        Constants.methodToGenerateFingerprint = "MCOD_P2P";
+//        Constants.resultPrefix = "src/Result/" + Constants.methodToGenerateFingerprint + "_" + Constants.nn + "*" + Constants.dn + "_" + Constants.dataset + "/";
         File f = new File(Constants.resultPrefix);
         if (!f.exists()) {
             f.mkdirs();

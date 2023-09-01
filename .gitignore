@@ -1,8 +1,8 @@
-Datasets/
+#Datasets/
 vene/
 out/
 .idea/
-src/Result/
+#src/Result/
 *.iml
 src/test/test.java
-src/test/postProcess.java
+#src/test/postProcess.java
